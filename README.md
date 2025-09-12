@@ -58,9 +58,6 @@ Options:
 - 需要 Rust stable（2021 edition）。
 - 运行示例：`cargo run -- -i ./samples -o merged.pdf`
 
-### 许可证
-
-- 尚未设置许可证。如需开源，请在仓库中添加 `LICENSE`（例如 MIT/Apache-2.0 等）。
 
 ---
 
