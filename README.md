@@ -116,10 +116,4 @@ Limitations:
 - Requires Rust stable (Edition 2021).
 - Example run: `cargo run -- -i ./samples -o merged.pdf`
 
-### License
 
-- No license has been set yet. If you plan to open-source, add a `LICENSE` file (e.g., MIT/Apache-2.0).
-
----
-
-如果你希望我为项目生成徽章、添加截图/示例文件夹，或根据你的使用场景调整 README 的语气与结构，请告诉我。
