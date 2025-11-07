@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 
 use crate::spec;
 use crate::progress::ProgressSink;
-use crate::scan;
+use crate::scan::{self, ScanConfig};
 
 pub fn run(
     input_dir: &Path,
@@ -21,8 +21,16 @@ pub fn run(
             .with_context(|| format!("创建输出目录失败: {}", parent.display()))?;
     }
 
-    // Scan pdf files (reuse scanner)
-    let pdf_files = scan::collect_pdfs(input_dir, includes, excludes, &[output.to_path_buf()])?;
+    // Scan pdf files (reuse scanner) — CLI uses infinite depth by default
+    let cfg = ScanConfig {
+        input_dir: input_dir.to_path_buf(),
+        includes: includes.to_vec(),
+        excludes: excludes.to_vec(),
+        extra_exclude_paths: vec![output.to_path_buf()],
+        max_depth: None,
+        follow_links: false,
+    };
+    let pdf_files = scan::collect_pdfs_cfg(&cfg)?;
 
     if pdf_files.is_empty() {
         anyhow::bail!("未在目录中找到 PDF: {}", input_dir.display());

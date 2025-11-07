@@ -39,7 +39,8 @@ pub trait ProgressSink: Send + Sync {
 - UI 线程渲染；后台 Job 发送 `JobProgress { pos, len, msg }` 与最终 `Result`。
 
 #### 扫描与过滤
-- 复用现有 `walkdir` + `globset`；可抽取扫描辅助供 TUI 使用。
+- 复用 `walkdir` + `globset`；已抽出 `ScanConfig`。
+- TUI 默认深度=1，可用 `[`/`]`/`\` 调整并重扫；采用流式 `scan_stream()` + 取消句柄以避免阻塞与线程堆积。
 
 ### Theming（gitui 风格）
 - `tui/theme.rs` 将逻辑角色映射到 `ratatui::style::Style`。
@@ -76,4 +77,3 @@ warn="#d29922"; error="#f85149"; ok="#2ea043"
 ### 风险
 - 大规模合并的内存占用；必要时文档限制并探索增量/流式策略。
 - 复杂 PDF 兼容性取决于 `lopdf`；出现异常时明确报错并给出指引。
-

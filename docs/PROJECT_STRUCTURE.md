@@ -15,6 +15,7 @@
     - `src/merge.rs`（合并核心）
     - `src/split.rs`（分割功能，预留）
     - `src/spec.rs`（页码/范围解析，预留）
+    - `src/scan.rs`（扫描目录与过滤：`ScanConfig`、同步与流式接口）
     - `src/tui/`（TUI，feature = `tui`）：
       - `tui/app.rs`（状态机）
       - `tui/ui.rs`（绘制）

@@ -40,4 +40,11 @@
 
 提示：命令在终端中会显示进度条（合并按文件、分割按任务组）。
 
+## TUI（实验性，可通过 feature 启用）
+- 启动：`cargo run --no-default-features --features tui -- tui -i <DIR>`
+- 扫描：
+  - CLI 默认“无限深度”递归扫描。
+  - TUI 默认“当前目录”深度=1；交互式调整：`[` 深度-1（最小1）、`]` 深度+1、`\` 切换为无限。
+  - 重扫：`r`；导航：`↑/↓/j/k`；选择：`Space`；退出：`q`。
+
 如需更多细节与项目结构，请查看 `docs/PROJECT_STRUCTURE.md`。
