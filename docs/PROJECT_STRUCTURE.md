@@ -15,6 +15,13 @@
     - `src/merge.rs`（合并核心）
     - `src/split.rs`（分割功能，预留）
     - `src/spec.rs`（页码/范围解析，预留）
+    - `src/tui/`（TUI，feature = `tui`）：
+      - `tui/app.rs`（状态机）
+      - `tui/ui.rs`（绘制）
+      - `tui/events.rs`（事件循环）
+      - `tui/components/`（组件库）
+      - `tui/jobs/`（后台任务）
+      - `tui/theme.rs`（主题系统）
 - 可在后续按需引入 `src/lib.rs` 暴露复用 API，但不强制全部迁移至 `lib`。
 
 ## 测试 / Tests
@@ -25,4 +32,3 @@
 - 调试：`cargo run -- -i ./docs -o merged.pdf`
 - 构建：`cargo build`（发布版：`cargo build --release`）
 - 开发工具：`cargo fmt --all`、`cargo clippy --all-targets --all-features -D warnings`、`cargo test`
-
