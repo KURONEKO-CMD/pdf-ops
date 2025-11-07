@@ -7,3 +7,4 @@ edition = "2021"
 walkdir = "2"
 clap = {version="4", features=["derive"]}
 lopdf = "0.32"
+thiserror = "1"
