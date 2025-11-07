@@ -41,7 +41,7 @@ fn main() {
         }
         #[cfg(feature = "tui")]
         Commands::Tui(args) => {
-            if let Err(e) = tui::run(args.theme, args.theme_file) {
+            if let Err(e) = tui::run(args.theme, args.theme_file, args.input_dir) {
                 eprintln!("❌ TUI 启动失败: {}", e);
                 std::process::exit(1);
             }

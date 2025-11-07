@@ -87,4 +87,7 @@ pub struct TuiArgs {
     /// Theme file (TOML)
     #[arg(long, value_name = "FILE")]
     pub theme_file: Option<PathBuf>,
+    /// Initial input directory to scan
+    #[arg(short = 'i', long, value_name = "DIR", default_value = ".")]
+    pub input_dir: PathBuf,
 }
