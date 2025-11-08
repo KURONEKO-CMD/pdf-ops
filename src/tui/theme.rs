@@ -1,6 +1,6 @@
 #![cfg(feature = "tui")]
 
-use ratatui::style::{Color, Style};
+use ratatui::style::Color;
 
 #[derive(Clone, Debug)]
 pub struct Theme {
@@ -13,23 +13,21 @@ pub struct Theme {
     pub sel_highlight_bg: Color,
     pub sel_highlight_fg: Color,
     pub ok: Color,
-    pub error: Color,
 }
 
 impl Theme {
     pub fn gitui_dark() -> Self {
-        // A simple palette inspired by GitUI
+        // High-contrast yet low-glare variant
         Self {
-            bg: Color::Rgb(12, 12, 12),
-            fg: Color::Rgb(201, 209, 217),
-            border: Color::Rgb(48, 54, 61),
-            accent: Color::Rgb(88, 166, 255),
-            list_highlight_bg: Color::Rgb(31, 111, 235),
-            list_highlight_fg: Color::Rgb(255, 255, 255),
-            sel_highlight_bg: Color::Rgb(34, 197, 94),
-            sel_highlight_fg: Color::Rgb(0, 0, 0),
-            ok: Color::Rgb(46, 160, 67),
-            error: Color::Rgb(248, 81, 73),
+            bg: Color::Rgb(8, 8, 8),
+            fg: Color::Rgb(230, 230, 230),
+            border: Color::Rgb(120, 120, 120),
+            accent: Color::Cyan,
+            list_highlight_bg: Color::Blue,
+            list_highlight_fg: Color::White,
+            sel_highlight_bg: Color::Green,
+            sel_highlight_fg: Color::Black,
+            ok: Color::Green,
         }
     }
 
@@ -44,15 +42,14 @@ impl Theme {
             sel_highlight_bg: Color::Rgb(200, 230, 201),
             sel_highlight_fg: Color::Rgb(0, 0, 0),
             ok: Color::Rgb(46, 160, 67),
-            error: Color::Rgb(211, 47, 47),
         }
     }
 }
 
+#[allow(dead_code)]
 pub fn resolve(name: Option<String>) -> Theme {
     match name.as_deref() {
         Some("light") => Theme::light(),
         _ => Theme::gitui_dark(),
     }
 }
-

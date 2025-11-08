@@ -1,32 +1,26 @@
 ## pdf-ops
 
-A simple Rust CLI that merges/splits PDFs; recursively collects PDFs in a folder and merges them, or splits a single PDF. Supports page-range selection and file filtering via globs.
+Rust CLI + TUI to merge/split PDFs.
 
-## Usage
+### CLI quick start
+- Merge: `pdf-ops merge -i ./in -o merged.pdf`
+- Merge with pages spec: `--pages "1-3,5,10-"`
+- Split per page: `pdf-ops split -i ./in.pdf -d ./out`
+- Split by ranges: `--ranges "1-3,4-6,7-"`
 
-- Merge current directory:
-  - `pdf-ops`
-- Specify input directory:
-  - `pdf-ops merge -i ./docs`
-- Specify output file:
-  - `pdf-ops merge -i ./docs -o output.pdf`
-- Merge with pages (applies to each input):
-  - `pdf-ops merge -i ./in --pages "1-3,5,10-"`
-- Split defaults to one page per file:
-  - `pdf-ops split -i ./input.pdf -d ./out`
-- Split by ranges:
-  - `pdf-ops split -i ./input.pdf -d ./out --ranges "1-3,4-6,7-"`
+### TUI summary (feature `tui`)
+- Launch: `cargo run --no-default-features --features tui -- tui -i <DIR>`
+- Keyboard only. Focus top menu: `g`. Navigate: `Tab/←/→`, `↑/↓/j/k`. Select/Run: `Space`/`Enter`. Cancel: `Esc`. Quit: `q`.
+- Files: set Input/Output paths.
+- Mode: Merge / Split.
+- Options: Depth (1/2/3/∞), Split range (pages per file), Overwrite (Force/Suffix), Output auto-follow.
+- Notes: Overwrite=Suffix appends `_1/_2/...`; Split > 20 files asks for confirmation.
 
-## Behavior & Filtering
-- `--output` default `merged.pdf` writes to `<input-dir>/merged.pdf`.
-- Recurses into subdirectories; `.pdf` files (case-insensitive) are considered.
-- Sorting is lexicographic by path; use prefixes like `001-...` to control order.
-- Filtering with globs (relative to `--input-dir`):
-  - `--include <GLOB>`: include only matching files; repeatable; empty means include all.
-  - `--exclude <GLOB>`: exclude matching files; repeatable.
-  - Example: `--include "**/*.pdf" --exclude "backup/**" --exclude "**/*draft*.pdf"`
+### Behavior & filtering
+- Relative `--output` resolves under `--input-dir`.
+- Recurses into subdirectories; `.pdf` files (case-insensitive).
+- Filtering via `--include/--exclude` globs relative to `--input-dir`.
 
-## Development
+### Development
 - Format: `cargo fmt --all`; Lint: `cargo clippy --all-targets --all-features -D warnings`
-- Run: `cargo run -- merge -i ./samples -o merged.pdf`
 - Test: `cargo test`

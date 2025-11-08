@@ -7,6 +7,7 @@ pub trait ProgressSink {
     fn finish(&self, _msg: Cow<'static, str>) {}
 }
 
+#[allow(dead_code)]
 pub struct NullProgress;
 impl ProgressSink for NullProgress {}
 

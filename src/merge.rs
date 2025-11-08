@@ -86,9 +86,18 @@ pub(crate) fn merge_selected_pages(files: &[PathBuf], output: &Path, pages_spec:
 
     let pages_id = doc.new_object_id();
     for &pid in &page_ids {
-        let page_obj = doc.objects.get_mut(&pid).expect("page not found");
-        let page_dict = page_obj.as_dict_mut().expect("page not a dict");
-        page_dict.set("Parent", Object::Reference(pages_id));
+        let page_obj = doc
+            .objects
+            .get_mut(&pid)
+            .ok_or_else(|| anyhow::anyhow!("页面对象不存在: {:?}", pid))?;
+        match page_obj.as_dict_mut() {
+            Ok(page_dict) => {
+                page_dict.set("Parent", Object::Reference(pages_id));
+            }
+            Err(_) => {
+                anyhow::bail!("页面对象不是字典: {:?}", pid);
+            }
+        }
     }
     let kids: Vec<Object> = page_ids.iter().map(|&id| Object::Reference(id)).collect();
     let mut pages_dict = Dictionary::new();

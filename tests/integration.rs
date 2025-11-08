@@ -1,5 +1,5 @@
 use assert_cmd::prelude::*;
-use assert_cmd::cargo::cargo_bin;
+// use modern macro form to avoid deprecation warnings
 use std::process::Command;
 use tempfile::tempdir;
 use std::fs;
@@ -64,7 +64,7 @@ fn merge_all_and_with_pages_and_filters() {
 
     // include only b.pdf using include glob
     let out1 = root.join("out1.pdf");
-    Command::new(cargo_bin(env!("CARGO_PKG_NAME")))
+    Command::new(assert_cmd::cargo::cargo_bin!(env!("CARGO_PKG_NAME")))
         .args(["merge", "-i"]).arg(&in_dir)
         .args(["-o"]).arg(&out1)
         .args(["--include", "b.pdf"])
@@ -73,7 +73,7 @@ fn merge_all_and_with_pages_and_filters() {
 
     // exclude sub/** and merge all => a + b only
     let out2 = root.join("out2.pdf");
-    Command::new(cargo_bin(env!("CARGO_PKG_NAME")))
+    Command::new(assert_cmd::cargo::cargo_bin!(env!("CARGO_PKG_NAME")))
         .args(["merge", "-i"]).arg(&in_dir)
         .args(["-o"]).arg(&out2)
         .args(["--exclude", "sub/**"])
@@ -82,7 +82,7 @@ fn merge_all_and_with_pages_and_filters() {
 
     // pages spec 1-2 applied to each => a(2)->2, b(3)->2 total 4
     let out3 = root.join("out3.pdf");
-    Command::new(cargo_bin(env!("CARGO_PKG_NAME")))
+    Command::new(assert_cmd::cargo::cargo_bin!(env!("CARGO_PKG_NAME")))
         .args(["merge", "-i"]).arg(&in_dir)
         .args(["-o"]).arg(&out3)
         .args(["--pages", "1-2"]) // apply to a,b
@@ -99,7 +99,7 @@ fn split_defaults_to_each_and_ranges() {
     let out_dir = root.join("out");
 
     // default to --each
-    Command::new(cargo_bin(env!("CARGO_PKG_NAME")))
+    Command::new(assert_cmd::cargo::cargo_bin!(env!("CARGO_PKG_NAME")))
         .args(["split", "-i"]).arg(&input)
         .args(["-d"]).arg(&out_dir)
         .assert().success();
@@ -112,7 +112,7 @@ fn split_defaults_to_each_and_ranges() {
 
     // ranges produces fewer files
     let out_dir2 = root.join("out2");
-    Command::new(cargo_bin(env!("CARGO_PKG_NAME")))
+    Command::new(assert_cmd::cargo::cargo_bin!(env!("CARGO_PKG_NAME")))
         .args(["split", "-i"]).arg(&input)
         .args(["-d"]).arg(&out_dir2)
         .args(["--ranges", "1-2,3-3"]).assert().success();

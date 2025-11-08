@@ -2,7 +2,7 @@ use clap::{Parser, Subcommand, Args};
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
-#[command(version, about = "pdf-merge: merge/split PDFs via CLI")]
+#[command(version, about = "pdf-ops: merge/split PDFs via CLI")]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Option<Commands>,

@@ -57,9 +57,18 @@ pub fn run(input: &Path, out_dir: &Path, each: bool, ranges_spec: Option<&str>, 
 
         let pages_id = out_doc.new_object_id();
         for &pid in &page_ids {
-            let page_obj = out_doc.objects.get_mut(&pid).expect("page not found");
-            let page_dict = page_obj.as_dict_mut().expect("page not a dict");
-            page_dict.set("Parent", Object::Reference(pages_id));
+            let page_obj = out_doc
+                .objects
+                .get_mut(&pid)
+                .ok_or_else(|| anyhow::anyhow!("页面对象不存在: {:?}", pid))?;
+            match page_obj.as_dict_mut() {
+                Ok(page_dict) => {
+                    page_dict.set("Parent", Object::Reference(pages_id));
+                }
+                Err(_) => {
+                    anyhow::bail!("页面对象不是字典: {:?}", pid);
+                }
+            }
         }
         let kids: Vec<Object> = page_ids.iter().map(|&id| Object::Reference(id)).collect();
         let mut pages_dict = Dictionary::new();
@@ -79,9 +88,9 @@ pub fn run(input: &Path, out_dir: &Path, each: bool, ranges_spec: Option<&str>, 
         out_doc.compress();
 
         let out_name = fill_pattern(pattern, base, start, end, idx + 1);
-        let out_path = out_dir.join(out_name);
+        let mut out_path = out_dir.join(out_name);
         if out_path.exists() && !force {
-            anyhow::bail!("输出文件已存在: {} (使用 --force 覆盖)", out_path.display());
+            out_path = ensure_unique_path(&out_path);
         }
         if let Some(parent) = out_path.parent() { std::fs::create_dir_all(parent).ok(); }
         out_doc.save(&out_path).with_context(|| format!("写入输出失败: {}", out_path.display()))?;
@@ -97,4 +106,21 @@ fn fill_pattern(pattern: &str, base: &str, start: usize, end: usize, index: usiz
         .replace("{start}", &start.to_string())
         .replace("{end}", &end.to_string())
         .replace("{index}", &index.to_string())
+}
+
+fn ensure_unique_path(p: &std::path::Path) -> std::path::PathBuf {
+    let candidate = p.to_path_buf();
+    if !candidate.exists() { return candidate; }
+    let parent = candidate.parent().map(|x| x.to_path_buf()).unwrap_or_else(|| std::path::PathBuf::from("."));
+    let stem = candidate.file_stem().and_then(|s| s.to_str()).unwrap_or("output");
+    let ext = candidate.extension().and_then(|e| e.to_str()).unwrap_or("");
+    let mut i = 1;
+    loop {
+        let mut name = format!("{}_{i}", stem);
+        if !ext.is_empty() { name.push('.'); name.push_str(ext); }
+        let cand = parent.join(name);
+        if !cand.exists() { return cand; }
+        i += 1;
+        if i > 10000 { return cand; }
+    }
 }

@@ -27,6 +27,7 @@ impl Default for ScanConfig {
     }
 }
 
+#[allow(dead_code)]
 pub fn collect_pdfs(
     input_dir: &Path,
     includes: &[String],
@@ -82,12 +83,61 @@ pub fn collect_pdfs_cfg(cfg: &ScanConfig) -> Result<Vec<PathBuf>> {
     Ok(out)
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+    use std::fs;
+
+    #[test]
+    fn scan_dir_with_spaces_and_pdfs() {
+        let td = tempdir().unwrap();
+        let root = td.path().join("My Dir With Spaces");
+        fs::create_dir_all(&root).unwrap();
+        let p = root.join("a b.pdf");
+        // create minimal single-page pdf via lopdf
+        let mut doc = lopdf::Document::with_version("1.5");
+        let page_id = doc.new_object_id();
+        let mut page = lopdf::Dictionary::new();
+        page.set("Type", "Page");
+        page.set("Resources", lopdf::Dictionary::new());
+        page.set("MediaBox", vec![0.into(), 0.into(), 200.into(), 200.into()]);
+        doc.objects.insert(page_id, lopdf::Object::Dictionary(page));
+        let pages_id = doc.new_object_id();
+        {
+            let page_obj = doc.objects.get_mut(&page_id).unwrap();
+            let page_dict = page_obj.as_dict_mut().unwrap();
+            page_dict.set("Parent", lopdf::Object::Reference(pages_id));
+        }
+        let kids: Vec<lopdf::Object> = vec![lopdf::Object::Reference(page_id)];
+        let mut pages_dict = lopdf::Dictionary::new();
+        pages_dict.set("Type", "Pages");
+        pages_dict.set("Kids", lopdf::Object::Array(kids));
+        pages_dict.set("Count", 1);
+        doc.objects.insert(pages_id, lopdf::Object::Dictionary(pages_dict));
+        let catalog_id = doc.new_object_id();
+        let mut catalog_dict = lopdf::Dictionary::new();
+        catalog_dict.set("Type", "Catalog");
+        catalog_dict.set("Pages", lopdf::Object::Reference(pages_id));
+        doc.objects.insert(catalog_id, lopdf::Object::Dictionary(catalog_dict));
+        doc.trailer.set("Root", lopdf::Object::Reference(catalog_id));
+        doc.compress();
+        doc.save(&p).unwrap();
+
+        let cfg = ScanConfig { input_dir: root.clone(), includes: vec![], excludes: vec![], extra_exclude_paths: vec![], max_depth: None, follow_links: false };
+        let files = collect_pdfs_cfg(&cfg).unwrap();
+        assert_eq!(files.len(), 1);
+        assert_eq!(files[0], p);
+    }
+}
+
 pub enum ScanEvent {
     Found(PathBuf),
     Error(String),
     Done,
 }
 
+#[derive(Clone)]
 pub struct CancelHandle(Arc<AtomicBool>);
 impl CancelHandle {
     pub fn cancel(&self) { self.0.store(true, Ordering::Relaxed); }
@@ -124,7 +174,11 @@ pub fn scan_stream(cfg: ScanConfig) -> (mpsc::Receiver<ScanEvent>, CancelHandle)
                         let _ = tx.send(ScanEvent::Found(p.to_path_buf()));
                     }
                 }
-                Err(e) => { let _ = tx.send(ScanEvent::Error(e.to_string())); }
+                Err(e) => {
+                    // 忽略不可访问条目的错误，不中断整体扫描
+                    // 仅在需要时可发送一次性提示；此处直接跳过
+                    let _ = tx.send(ScanEvent::Error(e.to_string()));
+                }
             }
         }
         let _ = tx.send(ScanEvent::Done);

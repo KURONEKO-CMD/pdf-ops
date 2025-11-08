@@ -4,13 +4,14 @@ mod spec;
 mod split;
 mod progress;
 mod scan;
+mod pathutil;
 #[cfg(feature = "tui")]
 mod tui;
 
 use cli::{Cli, Commands};
 use clap::Parser;
 use std::path::PathBuf;
-use progress::{IndicatifProgress, ProgressSink};
+use progress::IndicatifProgress;
 
 fn main() {
     let cmd = Cli::parse().default_to_merge();
