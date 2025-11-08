@@ -42,7 +42,7 @@ pub fn run(
     Ok(())
 }
 
-fn merge_selected_pages(files: &[PathBuf], output: &Path, pages_spec: Option<&str>, progress: &dyn ProgressSink, force: bool) -> Result<()> {
+pub(crate) fn merge_selected_pages(files: &[PathBuf], output: &Path, pages_spec: Option<&str>, progress: &dyn ProgressSink, force: bool) -> Result<()> {
     // Overwrite protection handled here to ensure we fail early
     if output.exists() && !force {
         anyhow::bail!("输出文件已存在: {} (使用 --force 覆盖)", output.display());
@@ -109,6 +109,10 @@ fn merge_selected_pages(files: &[PathBuf], output: &Path, pages_spec: Option<&st
     doc.save(output)
         .with_context(|| format!("写入输出失败: {}", output.display()))?;
     Ok(())
+}
+
+pub fn run_with_files(files: &[PathBuf], output: &Path, pages_spec: Option<&str>, force: bool, progress: &dyn ProgressSink) -> Result<()> {
+    merge_selected_pages(files, output, pages_spec, progress, force)
 }
 
 // scanner helpers moved to crate::scan

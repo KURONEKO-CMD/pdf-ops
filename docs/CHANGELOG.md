@@ -21,6 +21,7 @@
 - 扫描模块：新增 `ScanConfig`，提供同步 `collect_pdfs_cfg()` 与流式 `scan_stream()` 接口。
 - CLI 扫描：默认无限深度（递归），保持当前行为。
 - TUI 扫描：默认深度=1，可用 `[`/`]` 调整深度，`\` 切换为无限；支持取消上次扫描并增量刷新列表。
+- TUI 基本交互：左右双栏（文件/选择顺序）、Tab 切换焦点、Space 勾选、u/d/U/D 调整顺序、Enter 运行合并（输出为 `<input_dir>/merged.pdf`）、F 切换覆盖。
 
 ## [0.1.0] - Initial
 ### Added
