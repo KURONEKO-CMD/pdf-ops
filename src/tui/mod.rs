@@ -17,6 +17,9 @@ struct FileItem {
 #[derive(Copy, Clone, PartialEq, Eq)]
 enum Focus { Left, Right }
 
+#[derive(Copy, Clone, PartialEq, Eq)]
+enum InputMode { None, EditOutput, EditPages }
+
 struct AppState {
     input_dir: PathBuf,
     files: Vec<FileItem>,
@@ -33,10 +36,17 @@ struct AppState {
     force: bool,
     // job
     job_running: bool,
+    // merge options
+    output: PathBuf,
+    pages: Option<String>,
+    // input overlay
+    input_mode: InputMode,
+    input_buffer: String,
 }
 
 impl AppState {
     fn new(input_dir: PathBuf) -> Self {
+        let output_default = input_dir.join("merged.pdf");
         Self {
             input_dir,
             files: Vec::new(),
@@ -50,6 +60,10 @@ impl AppState {
             focus: Focus::Left,
             force: false,
             job_running: false,
+            output: output_default,
+            pages: None,
+            input_mode: InputMode::None,
+            input_buffer: String::new(),
         }
     }
 }
@@ -121,6 +135,35 @@ pub fn run(_theme: Option<String>, _theme_file: Option<PathBuf>, input_dir: Path
 
         if event::poll(Duration::from_millis(100))? {
             if let Event::Key(key) = event::read()? {
+                // input overlay handling
+                if app.input_mode != InputMode::None {
+                    match key.code {
+                        KeyCode::Esc => { app.input_mode = InputMode::None; app.status = "已取消".into(); }
+                        KeyCode::Enter => {
+                            match app.input_mode {
+                                InputMode::EditOutput => {
+                                    if !app.input_buffer.is_empty() {
+                                        app.output = PathBuf::from(app.input_buffer.clone());
+                                    }
+                                    app.status = format!("输出: {}", app.output.display());
+                                }
+                                InputMode::EditPages => {
+                                    let trimmed = app.input_buffer.trim();
+                                    if trimmed.is_empty() { app.pages = None; app.status = "清除页码范围".into(); }
+                                    else { app.pages = Some(trimmed.to_string()); app.status = format!("页码: {}", trimmed); }
+                                }
+                                InputMode::None => {}
+                            }
+                            app.input_mode = InputMode::None;
+                            app.input_buffer.clear();
+                        }
+                        KeyCode::Backspace => { app.input_buffer.pop(); }
+                        KeyCode::Char(c) => { app.input_buffer.push(c); }
+                        KeyCode::Tab => {}
+                        _ => {}
+                    }
+                    continue;
+                }
                 match key.code {
                     KeyCode::Char('q') => break,
                     KeyCode::Tab => { app.focus = if app.focus==Focus::Left { Focus::Right } else { Focus::Left }; }
@@ -158,17 +201,21 @@ pub fn run(_theme: Option<String>, _theme_file: Option<PathBuf>, input_dir: Path
                     KeyCode::Char('\\') => { app.scan_depth = None; rescan(&mut app, tx.clone()); }
                     // force toggle
                     KeyCode::Char('F') => { app.force = !app.force; app.status = format!("覆盖: {}", if app.force {"开启"} else {"关闭"}); }
+                    // edit options
+                    KeyCode::Char('o') => { app.input_mode = InputMode::EditOutput; app.input_buffer = app.output.display().to_string(); app.status = "编辑输出路径: Enter 保存, Esc 取消".into(); }
+                    KeyCode::Char('p') => { app.input_mode = InputMode::EditPages; app.input_buffer = app.pages.clone().unwrap_or_default(); app.status = "编辑页码范围(例: 1-3,5,10-): Enter 保存, Esc 取消".into(); }
                     // run merge job
                     KeyCode::Enter => {
                         if !app.job_running && !app.order.is_empty() {
                             app.job_running = true;
                             let files: Vec<PathBuf> = app.order.iter().filter_map(|&i| app.files.get(i)).map(|it| it.path.clone()).collect();
-                            let output = app.input_dir.join("merged.pdf");
+                            let output = if app.output.is_relative() { app.input_dir.join(&app.output) } else { app.output.clone() };
                             let force = app.force;
+                            let pages = app.pages.clone();
                             let tx2 = tx.clone();
                             thread::spawn(move || {
                                 let prog = TuiProgress::new(tx2.clone());
-                                let res = crate::merge::run_with_files(&files, &output, None, force, &prog);
+                                let res = crate::merge::run_with_files(&files, &output, pages.as_deref(), force, &prog);
                                 let note = format!("{}", output.display());
                                 let _ = tx2.send(UiMsg::JobDone(res, note));
                             });
@@ -230,7 +277,12 @@ fn draw(f: &mut ratatui::Frame<'_>, app: &AppState) {
 
     // Header
     let depth = app.scan_depth.map(|d| d.to_string()).unwrap_or("∞".into());
-    let title = format!("pdf-ops · 输入目录: {} · 深度: {} · 文件数: {}{}", app.input_dir.display(), depth, app.files.len(), if app.scanning { " · 扫描中..." } else { "" });
+    let pages = app.pages.clone().unwrap_or_else(|| "(全部)".into());
+    let out_disp = if app.output.is_relative() { app.input_dir.join(&app.output) } else { app.output.clone() };
+    let title = format!("pdf-ops · 输入: {} · 深度: {} · 选中: {} · 输出: {} · 页码: {}{}",
+        app.input_dir.display(), depth, app.order.len(), out_disp.display(), pages,
+        if app.scanning { " · 扫描中..." } else { "" }
+    );
     let header = Paragraph::new(title)
         .block(Block::default().borders(Borders::ALL).title("Merge/Split"));
     f.render_widget(header, chunks[0]);
@@ -268,7 +320,36 @@ fn draw(f: &mut ratatui::Frame<'_>, app: &AppState) {
     if !app.order.is_empty() { sel_state.select(Some(app.order_selected)); }
     f.render_stateful_widget(sel_list, main[1], &mut sel_state);
 
-    // Status bar
-    let status = Paragraph::new(app.status.clone());
+    // Status bar and optional input overlay
+    let status = Paragraph::new(match app.input_mode { InputMode::None => app.status.clone(), _ => format!("{}: {}", app.status, app.input_buffer) });
     f.render_widget(status, chunks[2]);
+
+    // Simple overlay box when in input mode
+    if app.input_mode != InputMode::None {
+        let area = centered_rect(60, 20, f.size());
+        let prompt = Paragraph::new(app.input_buffer.clone())
+            .block(Block::default().title(match app.input_mode { InputMode::EditOutput => "输出路径", InputMode::EditPages => "页码范围", InputMode::None => "" }).borders(Borders::ALL));
+        f.render_widget(Clear, area);
+        f.render_widget(prompt, area);
+    }
+}
+
+fn centered_rect(pct_x: u16, pct_y: u16, r: Rect) -> Rect {
+    let popup_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Percentage((100 - pct_y) / 2),
+            Constraint::Percentage(pct_y),
+            Constraint::Percentage((100 - pct_y) / 2),
+        ])
+        .split(r);
+    let horizontal = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage((100 - pct_x) / 2),
+            Constraint::Percentage(pct_x),
+            Constraint::Percentage((100 - pct_x) / 2),
+        ])
+        .split(popup_layout[1]);
+    horizontal[1]
 }
