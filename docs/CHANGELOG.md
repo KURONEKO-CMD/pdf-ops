@@ -21,6 +21,7 @@
 - 扫描模块：新增 `ScanConfig`，提供同步 `collect_pdfs_cfg()` 与流式 `scan_stream()` 接口。
 - CLI 扫描：默认无限深度（递归），保持当前行为。
 - TUI 扫描：默认深度=1，可用 `[`/`]` 调整深度，`\` 切换为无限；支持取消上次扫描并增量刷新列表。
+- TUI 顶部与主题：顶部拆分为 `Menu` 与 `Info` 两个 Block；`Menu` 仅展示菜单项（Files/Mode/Help），`Info` 显示路径与模式；全局背景与边框/高亮/状态/帮助接入 `gitui-dark` 主题；`g` 进入顶部菜单，`Tab/←/→` 切换，`Enter` 在 Mode 弹出模式选择。
 - TUI 基本交互：左右双栏（文件/选择顺序）、Tab 切换焦点、Space 勾选、u/d/U/D 调整顺序、Enter 运行合并（输出为 `<input_dir>/merged.pdf`）、F 切换覆盖。
 - TUI 合并选项：支持 `o` 编辑输出路径（相对写入到输入目录）、`p` 编辑页码范围（如 `1-3,5,10-`）。
 

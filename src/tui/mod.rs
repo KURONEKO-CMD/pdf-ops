@@ -319,31 +319,48 @@ fn rescan(app: &mut AppState, tx: mpsc::Sender<UiMsg>) {
 
 fn draw(f: &mut ratatui::Frame<'_>, app: &AppState) {
     let size = f.size();
+    // 全局背景填充为主题色
+    let bg = Block::default().style(Style::default().bg(app.theme.bg).fg(app.theme.fg));
+    f.render_widget(bg, size);
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(3), // header
+            Constraint::Length(6), // menu + info 两个块
             Constraint::Min(1),    // main
             Constraint::Length(2), // status + help
         ])
         .split(size);
+    // 顶部：拆为 Menu 与 Info 两个块
+    let top = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(3), Constraint::Length(3)])
+        .split(chunks[0]);
 
-    // Header
+    // Menu（只显示菜单项）
+    let items = ["Files", "Mode", "Help"];
+    let mut spans: Vec<Span> = Vec::new();
+    for (i, it) in items.iter().enumerate() {
+        let label = if app.top_focus && app.top_index==i { format!("[{}]", it) } else { it.to_string() };
+        if i>0 { spans.push(Span::raw("  ")); }
+        spans.push(Span::styled(label, if app.top_focus && app.top_index==i { Style::default().fg(app.theme.accent).add_modifier(Modifier::BOLD) } else { Style::default().fg(app.theme.fg) }));
+    }
+    let menu_para = Paragraph::new(Line::from(spans))
+        .block(Block::default().borders(Borders::ALL).border_style(Style::default().fg(app.theme.border)).title("Menu"));
+    f.render_widget(menu_para, top[0]);
+
+    // Info（弱化显示）
     let depth = app.scan_depth.map(|d| d.to_string()).unwrap_or("∞".into());
     let pages = app.pages.clone().unwrap_or_else(|| "(all)".into());
     let out_disp = if app.output.is_relative() { app.input_dir.join(&app.output) } else { app.output.clone() };
-    let title = format!("pdf-ops · Input: {} · Depth: {} · Selected: {} · Output: {} · Pages: {} · Mode: {}{}",
+    let info = format!("pdf-ops · Input: {} · Depth: {} · Selected: {} · Output: {} · Pages: {} · Mode: {}{}",
         app.input_dir.display(), depth, app.order.len(), out_disp.display(), pages,
         match app.mode { Mode::Merge=>"Merge", Mode::Split=>"Split" },
         if app.scanning { " · Scanning..." } else { "" }
     );
-    let menu = format!("Menu: {}  {}  (Tab 切换 · Enter 选择 · g 顶部)",
-        if app.top_focus && app.top_index==0 {"[Files]"} else {" Files "},
-        if app.top_focus && app.top_index==1 {"[Mode]"} else {" Mode "}
-    );
-    let header = Paragraph::new(format!("{}\n{}", title, menu))
-        .block(Block::default().borders(Borders::ALL).border_style(Style::default().fg(app.theme.border)).title("Menu"));
-    f.render_widget(header, chunks[0]);
+    let info_para = Paragraph::new(info)
+        .style(Style::default().fg(app.theme.fg).add_modifier(Modifier::DIM))
+        .block(Block::default().borders(Borders::ALL).border_style(Style::default().fg(app.theme.border)).title("Info"));
+    f.render_widget(info_para, top[1]);
 
     // Main area: split into two columns
     let main = Layout::default()
